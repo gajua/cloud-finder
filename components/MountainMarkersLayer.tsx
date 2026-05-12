@@ -5,7 +5,6 @@ import { useEffect } from "react";
 import { useMap } from "react-leaflet";
 
 import { MOUNTAINS } from "@/data/mountains";
-import { skyLabelKo, weatherEmojiForSky } from "@/lib/cloudUi";
 import { probabilityTier } from "@/lib/fogAlgorithm";
 import type { MountainInsight } from "@/store/useWeatherStore";
 
@@ -54,36 +53,28 @@ export function MountainMarkersLayer({
             : tier === "mid"
               ? "bg-amber-500 text-stone-900 ring-amber-900/15"
               : "bg-rose-600 text-white ring-rose-900/20";
-        const weatherEmoji = weatherEmojiForSky(insight.weather.sky);
-        const skyLabel = skyLabelKo(insight.weather.sky);
-        const minTemp = Math.round(insight.weather.tempMinToday);
-        const maxTemp = Math.round(insight.weather.tempMaxToday);
-        const sunrise = insight.weather.sunriseTime;
 
         icon = L.divIcon({
           html: `
           <div class="flex flex-col items-center gap-0.5 pb-1">
             <div class="flex min-w-[5.5rem] flex-col items-center rounded-xl px-2.5 py-1.5 text-center shadow-md ring-2 ${badgeTone}">
               <span class="max-w-[6.5rem] truncate text-[10px] font-semibold leading-tight opacity-95">${escapeHtml(m.name)}</span>
-              <span class="mt-0.5 flex items-center gap-1 text-lg font-bold leading-none tracking-tight">
-                <span aria-hidden class="select-none text-base leading-none">${weatherEmoji}</span>
-                ${insight.fog.probability}%
-              </span>
+              <span class="mt-0.5 text-[11px] font-medium leading-tight opacity-90">내일 새벽 운해</span>
+              <span class="mt-0.5 text-lg font-bold leading-none tracking-tight tabular-nums">${insight.fog.probability}%</span>
             </div>
             ${TAIL_HTML}
           </div>
         `,
           className: "osm-mountain-marker-icon",
-          iconSize: [120, 96],
-          iconAnchor: [60, 96],
+          iconSize: [120, 102],
+          iconAnchor: [60, 102],
         });
 
         tooltipHtml = `
-          <div class="space-y-0.5">
+          <div class="space-y-1 text-xs">
             <div class="font-semibold">${escapeHtml(m.name)}</div>
-            <div>${weatherEmoji} ${escapeHtml(skyLabel)}</div>
-            <div class="tabular-nums">최저 ${minTemp}° / 최고 ${maxTemp}°</div>
-            <div class="tabular-nums">일출 ${escapeHtml(sunrise)}</div>
+            <div>내일 새벽·일출 전후 <span class="font-semibold tabular-nums">${insight.fog.probability}%</span> (추정)</div>
+            <div class="text-[11px] leading-snug text-stone-600 dark:text-stone-300">단기예보를 내부 모델에 넣어 산출한 값으로, 실제 관측과 다를 수 있습니다.</div>
           </div>
         `;
       } else if (isPending) {
@@ -105,7 +96,7 @@ export function MountainMarkersLayer({
           iconAnchor: [60, 96],
         });
 
-        tooltipHtml = `<div class="text-xs">${escapeHtml(m.name)}<br/>날씨 데이터를 불러오는 중입니다.</div>`;
+        tooltipHtml = `<div class="text-xs">${escapeHtml(m.name)}<br/>운해 확률을 불러오는 중입니다.</div>`;
       } else if (fetchError) {
         const shortErr =
           fetchError.length > 48 ? `${escapeHtml(fetchError.slice(0, 48))}…` : escapeHtml(fetchError);

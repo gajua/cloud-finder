@@ -14,6 +14,11 @@ export function todayDateKeySeoul(): string {
   return dateKeyInSeoul(new Date());
 }
 
+/** 서울 달력 기준 내일 `YYYY-MM-DD` (운해 지도는 항상 이 날짜만 사용) */
+export function tomorrowDateKeySeoul(): string {
+  return addCalendarDaysToDateKey(todayDateKeySeoul(), 1);
+}
+
 /** `YYYY-MM-DD`를 서울 달력 그날 정오로 해석 (UTC 자정 파싱으로 하루 어긋남 방지) */
 export function noonSeoulFromDateKey(dateKey: string): Date {
   return new Date(`${dateKey}T12:00:00+09:00`);

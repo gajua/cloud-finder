@@ -13,9 +13,9 @@ export type KmaRuntimeConfig = {
 const DEFAULT_MOUNTAIN_API_URL =
   "https://apihub.kma.go.kr/api/typ08/getMountainWeather";
 
-/** `.env.example`과 동일한 기본 산악 지점 매핑(JSON 문자열) */
+/** typ08 산악예보 `mountainNum`(기상청 산악지점 표). 소요산(정상)=48 */
 export const DEFAULT_KMA_MOUNTAIN_STN_JSON =
-  '{"bukhansan":"108","dobongsan":"108","suraksan":"108","gwanaksan":"108","seoraksan":"90","jirisan":"192","deogyusan":"146","chiaksan":"114"}';
+  '{"bukhansan":"40","dobongsan":"47","soyosan":"48","gwanaksan":"125","seoraksan":"1","jirisan":"86","deogyusan":"77","chiaksan":"5"}';
 
 function trimOrUndefined(s: string | undefined): string | undefined {
   const t = s?.trim();

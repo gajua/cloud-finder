@@ -9,6 +9,21 @@ function storageKey(dateKey: string) {
   return `${STORAGE_PREFIX}${dateKey}`;
 }
 
+function weatherAllHasAnySuccess(body: WeatherAllResponseBody): boolean {
+  return Array.isArray(body.mountains) && body.mountains.some((r) => !("error" in r));
+}
+
+/** 성공 행이 없는 캐시는 무시하고 지워 재요청하게 합니다. */
+export function clearWeatherAllClientCache(dateKey: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(storageKey(dateKey));
+  } catch {
+    /* ignore */
+  }
+  document.cookie = `${COOKIE_NAME}=; Max-Age=0; Path=/; SameSite=Lax`;
+}
+
 /**
  * 쿠키에는 `dateKey`·페치 시각만 두고(4KB 제한 회피), 본문은 sessionStorage에 둡니다.
  */
@@ -38,12 +53,24 @@ export function readWeatherAllClientCache(
   if (typeof window === "undefined") return null;
   const fetchedAt = parseCookieGate(dateKey);
   if (fetchedAt == null) return null;
-  if (Date.now() - fetchedAt > WEATHER_ALL_CLIENT_CACHE_MS) return null;
+  if (Date.now() - fetchedAt > WEATHER_ALL_CLIENT_CACHE_MS) {
+    clearWeatherAllClientCache(dateKey);
+    return null;
+  }
   const raw = sessionStorage.getItem(storageKey(dateKey));
-  if (!raw) return null;
+  if (!raw) {
+    clearWeatherAllClientCache(dateKey);
+    return null;
+  }
   try {
-    return JSON.parse(raw) as WeatherAllResponseBody;
+    const parsed = JSON.parse(raw) as WeatherAllResponseBody;
+    if (!weatherAllHasAnySuccess(parsed)) {
+      clearWeatherAllClientCache(dateKey);
+      return null;
+    }
+    return parsed;
   } catch {
+    clearWeatherAllClientCache(dateKey);
     return null;
   }
 }
@@ -53,6 +80,7 @@ export function writeWeatherAllClientCache(
   body: WeatherAllResponseBody,
 ): void {
   if (typeof window === "undefined") return;
+  if (!weatherAllHasAnySuccess(body)) return;
   const now = Date.now();
   try {
     sessionStorage.setItem(storageKey(dateKey), JSON.stringify(body));

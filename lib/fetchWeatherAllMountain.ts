@@ -1,5 +1,6 @@
 import type { Mountain } from "@/data/mountains";
 import type { KmaRuntimeConfig } from "@/lib/kmaRuntimeConfig";
+import { addCalendarDaysToDateKey } from "@/lib/dateSeoul";
 import { computeFogSeaProbability, type FogComputation } from "@/lib/fogAlgorithm";
 import { latLngToGrid } from "@/lib/coordToGrid";
 import { fetchKmaWeatherByGrid } from "@/lib/kmaWeather";
@@ -16,6 +17,10 @@ export async function fetchWeatherAllMountainRow(
   baseDateYYYYMMDD: string,
   runtime?: KmaRuntimeConfig | null,
   outerSignal?: AbortSignal,
+  options?: {
+    /** `getVilageFcst` JSON 수신 시(격자 폴백일 때만) 호출 */
+    onVilageFcstJson?: (mountainName: string, payload: unknown) => void;
+  },
 ): Promise<WeatherAllMountainSuccess | WeatherAllMountainFailure> {
   try {
     const { nx, ny } = latLngToGrid(mountain.lat, mountain.lng);
@@ -26,13 +31,19 @@ export async function fetchWeatherAllMountainRow(
       mountainId: mountain.id,
       runtime: runtime ?? undefined,
       outerSignal,
+      onVilageFcstJson: options?.onVilageFcstJson
+        ? (payload) => options.onVilageFcstJson!(mountain.name, payload)
+        : undefined,
     });
 
     const mountainWeather = weatherDataToMountainWeather({
       mountain,
       weather: result.weather,
       source: "kma",
+      /** 기상 조회 기준일(오늘) */
       dateKey,
+      /** 운해·일출 맥락은 익일(내일 새벽 관측) */
+      sunriseDateKey: addCalendarDaysToDateKey(dateKey, 1),
     });
 
     const fogBase = computeFogSeaProbability(mountainWeather);

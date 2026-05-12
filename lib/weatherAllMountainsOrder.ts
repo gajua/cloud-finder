@@ -2,7 +2,7 @@ import { MOUNTAINS, type Mountain } from "@/data/mountains";
 
 /**
  * 산별 일괄 조회 순서(요구사항 순서와 동일).
- * 북한산 → 도봉산 → 설악산 → 지리산 → 관악산 → 치악산 → 덕유산 → 수락산
+ * 북한산 → 도봉산 → 설악산 → 지리산 → 관악산 → 치악산 → 덕유산 → 소요산
  */
 export const WEATHER_ALL_MOUNTAIN_ORDER = [
   "bukhansan",
@@ -12,7 +12,7 @@ export const WEATHER_ALL_MOUNTAIN_ORDER = [
   "gwanaksan",
   "chiaksan",
   "deogyusan",
-  "suraksan",
+  "soyosan",
 ] as const;
 
 export function toYYYYMMDDFromDateKey(dateKey: string): string | null {

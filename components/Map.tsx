@@ -26,13 +26,12 @@ const KOREA_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 function MapWeatherLoader() {
-  const selectedDateKey = useWeatherStore((s) => s.selectedDateKey);
   const loadWeatherAll = useWeatherStore((s) => s.loadWeatherAll);
 
-  // 마운트·날짜 변경: NEXT_PUBLIC 키가 있으면 브라우저에서 KMA 직접, 없으면 `/api/weather-all` 서버 폴백.
+  // 항상 내일(서울) 기준 단일 로드. NEXT_PUBLIC 키가 있으면 브라우저 KMA, 없으면 `/api/weather-all` 폴백.
   useEffect(() => {
     void loadWeatherAll();
-  }, [loadWeatherAll, selectedDateKey]);
+  }, [loadWeatherAll]);
 
   return null;
 }

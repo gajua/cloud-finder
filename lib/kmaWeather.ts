@@ -49,8 +49,6 @@ const BASE_TIMES = [
 const KMA_FETCH_TIMEOUT_MS = 12000;
 /** 산악예보는 응답이 크거나 허브 지연이 있어 별도 상한(가이드와 무관한 클라이언트 보호) */
 const KMA_MOUNTAIN_FETCH_TIMEOUT_MS = 22000;
-/** 격자예보 폴백 시 base_time 후보 폭 */
-const MAX_BASE_TIME_BACKTRACK_SLOTS = 2;
 /** 산악예보(typ08): 산마다 순차 시도 횟수·지연을 줄이기 위해 백트랙을 더 짧게 */
 const MAX_MOUNTAIN_BASE_BACKTRACK_SLOTS = 1;
 
@@ -499,8 +497,18 @@ async function fetchKmaRequest(params: {
   nx: number;
   ny: number;
   outerSignal?: AbortSignal;
+  /** 단기예보 JSON 수신 직후 디버그용(서버 라우트 등에서 전달) */
+  onVilageFcstJson?: (payload: unknown) => void;
 }): Promise<KmaItem[] | null> {
-  const { serviceKey, baseDateYYYYMMDD, baseTimeHHmm, nx, ny, outerSignal } = params;
+  const {
+    serviceKey,
+    baseDateYYYYMMDD,
+    baseTimeHHmm,
+    nx,
+    ny,
+    outerSignal,
+    onVilageFcstJson,
+  } = params;
 
   if (outerSignal?.aborted) return null;
 
@@ -521,6 +529,7 @@ async function fetchKmaRequest(params: {
   try {
     res = await fetch(url.toString(), {
       method: "GET",
+      cache: "no-store",
       signal,
     });
   } catch {
@@ -535,6 +544,7 @@ async function fetchKmaRequest(params: {
   }
 
   const data: unknown = await res.json();
+  onVilageFcstJson?.(data);
   const parsed = data as KmaResponseShape;
   const nestedItems = parsed.response?.body?.items;
   const items =
@@ -810,6 +820,8 @@ export async function fetchKmaWeatherByGrid(params: {
   runtime?: KmaRuntimeConfig | null;
   /** 일괄 조회 등 상위에서 타임아웃을 걸 때 전달합니다. */
   outerSignal?: AbortSignal;
+  /** `getVilageFcst` 응답 JSON을 받은 뒤 호출(산 이름 등은 상위에서 클로저로 넘김) */
+  onVilageFcstJson?: (payload: unknown) => void;
 }): Promise<KmaWeatherResult> {
   const {
     nx,
@@ -819,6 +831,7 @@ export async function fetchKmaWeatherByGrid(params: {
     now,
     runtime: runtimeArg,
     outerSignal,
+    onVilageFcstJson,
   } = params;
 
   const runtime = runtimeArg ?? resolveKmaRuntimeFromEnv();
@@ -842,17 +855,10 @@ export async function fetchKmaWeatherByGrid(params: {
     return { weather: mountainWeather, source: "kma" };
   }
 
-  // 2) 기존 격자예보 폴백
-  const candidates = computeBaseDateTime({
-    now: nowDate,
-    targetBaseDateYYYYMMDD,
-    maxBacktrackSlots: MAX_BASE_TIME_BACKTRACK_SLOTS,
-  });
+  // 2) 기존 격자예보 폴백 — base_time 고정 0500 (요청 기준일 base_date)
+  const candidates = [{ baseDate: targetBaseDateYYYYMMDD, baseTime: "0500" as const }];
+  const desiredFcstTime = 500;
 
-  // For fcstTime selection we anchor to the chosen base_time (MVP).
-  const desiredFcstTime = Number(candidates[0]?.baseTime ?? BASE_TIMES[0]);
-
-  // Try candidates in order (newer => older).
   for (let i = 0; i < candidates.length; i += 1) {
     const { baseDate, baseTime } = candidates[i];
     const desired = Number(baseTime);
@@ -863,6 +869,7 @@ export async function fetchKmaWeatherByGrid(params: {
       nx,
       ny,
       outerSignal,
+      onVilageFcstJson,
     });
 
     if (!items || items.length === 0) continue;
