@@ -22,9 +22,13 @@ export type MountainInsight = {
   fogReasons: WeatherAllWireReasons;
 };
 
+/** 로딩 UI 단계: ① API·KMA에서 날씨 수신 ② 응답을 산별 인사이트로 정리 */
+export type WeatherLoadStage = "fetching" | "computing";
+
 type WeatherState = {
   weatherData: MountainInsight[];
   loading: boolean;
+  loadStage: WeatherLoadStage | null;
   error: string | null;
   selectedMountainId: string | null;
   mountainErrors: Record<string, string>;
@@ -34,6 +38,14 @@ type WeatherState = {
 
 const WEATHER_ALL_TIMEOUT_MS = 120000;
 const WEATHER_ALL_ENDPOINT = "/api/weather-all";
+/** 2단계 UI가 한 프레임만 깜빡이지 않도록 최소 표시 시간(ms) */
+const MIN_COMPUTING_STAGE_MS = 650;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 /** 오늘(서울) 기준 단기예보 조회는 하나뿐 — StrictMode·중복 호출 병합 */
 let inFlightTodayWeather: Promise<void> | null = null;
@@ -54,6 +66,7 @@ function rowToInsight(row: WeatherAllMountainSuccess): MountainInsight {
 export const useWeatherStore = create<WeatherState>((set) => ({
   weatherData: [],
   loading: false,
+  loadStage: null,
   error: null,
   selectedMountainId: null,
   mountainErrors: {},
@@ -76,6 +89,7 @@ export const useWeatherStore = create<WeatherState>((set) => ({
       try {
         set({
           loading: true,
+          loadStage: "fetching",
           error: null,
           mountainErrors: {},
           weatherData: [],
@@ -119,6 +133,14 @@ export const useWeatherStore = create<WeatherState>((set) => ({
           data = parsed;
         }
 
+        const computingStartedAt = Date.now();
+        set({ loadStage: "computing" });
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => resolve());
+          });
+        });
+
         const nextData: MountainInsight[] = [];
         const mountainErrors: Record<string, string> = {};
 
@@ -130,6 +152,11 @@ export const useWeatherStore = create<WeatherState>((set) => ({
           }
         }
 
+        const computingElapsed = Date.now() - computingStartedAt;
+        if (computingElapsed < MIN_COMPUTING_STAGE_MS) {
+          await sleep(MIN_COMPUTING_STAGE_MS - computingElapsed);
+        }
+
         const hasSuccess = nextData.length > 0;
         const errValues = Object.values(mountainErrors);
         const errSummary =
@@ -139,6 +166,7 @@ export const useWeatherStore = create<WeatherState>((set) => ({
           weatherData: nextData,
           mountainErrors,
           loading: false,
+          loadStage: null,
           error: hasSuccess ? errSummary : errSummary ?? "날씨 데이터를 불러오지 못했습니다.",
         });
       } catch (e) {
@@ -150,6 +178,7 @@ export const useWeatherStore = create<WeatherState>((set) => ({
               : "날씨 데이터를 불러오지 못했습니다.";
         set({
           loading: false,
+          loadStage: null,
           weatherData: [],
           mountainErrors: {},
           error: message,

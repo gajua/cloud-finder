@@ -12,6 +12,7 @@ import {
 
 import { BottomSheet } from "./BottomSheet";
 import { MountainMarkersLayer } from "./MountainMarkersLayer";
+import { WeatherLoadOverlay } from "./WeatherLoadOverlay";
 
 const CENTER: [number, number] = [37.35, 127.85];
 const DEFAULT_ZOOM = 7;
@@ -39,6 +40,7 @@ function MapWeatherLoader() {
 export function CloudFinderMap() {
   const weatherData = useWeatherStore((s) => s.weatherData);
   const loading = useWeatherStore((s) => s.loading);
+  const loadStage = useWeatherStore((s) => s.loadStage);
   const selectedId = useWeatherStore((s) => s.selectedMountainId);
   const selectMountain = useWeatherStore((s) => s.selectMountain);
   const mountainErrors = useWeatherStore((s) => s.mountainErrors);
@@ -87,11 +89,14 @@ export function CloudFinderMap() {
         <MapWeatherLoader />
         <MountainMarkersLayer
           insights={insights}
+          loadStage={loadStage}
           loading={loading}
           mountainErrors={mountainErrors}
           onOpenDetail={handleOpenDetail}
         />
       </MapContainer>
+
+      <WeatherLoadOverlay loading={loading} loadStage={loadStage} />
 
       {error ? (
         <div className="pointer-events-none absolute left-3 top-3 z-1000 max-w-sm rounded-lg bg-white/90 px-3 py-2 text-xs text-stone-800 shadow-md ring-1 ring-black/5 backdrop-blur dark:bg-stone-950/90 dark:text-stone-100 dark:ring-white/10">

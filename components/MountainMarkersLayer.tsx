@@ -6,13 +6,17 @@ import { useMap } from "react-leaflet";
 
 import { MOUNTAINS } from "@/data/mountains";
 import { probabilityTier } from "@/lib/fogAlgorithm";
-import type { MountainInsight } from "@/store/useWeatherStore";
+import type {
+  MountainInsight,
+  WeatherLoadStage,
+} from "@/store/useWeatherStore";
 
 const TAIL_HTML = `<div class="h-0 w-0 border-x-8 border-t-[10px] border-x-transparent border-t-stone-900/80 drop-shadow" aria-hidden="true"></div>`;
 
 type MountainMarkersLayerProps = {
   insights: Record<string, MountainInsight>;
   loading: boolean;
+  loadStage: WeatherLoadStage | null;
   mountainErrors: Record<string, string>;
   onOpenDetail: (id: string) => void;
 };
@@ -20,6 +24,7 @@ type MountainMarkersLayerProps = {
 export function MountainMarkersLayer({
   insights,
   loading,
+  loadStage,
   mountainErrors,
   onOpenDetail,
 }: MountainMarkersLayerProps) {
@@ -32,6 +37,12 @@ export function MountainMarkersLayer({
       const insight = insights[m.id];
       const fetchError = mountainErrors[m.id];
       const isPending = loading && !insight && !fetchError;
+      const pendingShort =
+        loadStage === "computing" ? "운해 계산 중" : "날씨 불러오는 중";
+      const pendingTooltip =
+        loadStage === "computing"
+          ? "날씨값을 토대로 운해 가능성을 계산 중입니다."
+          : "날씨 데이터를 불러오는 중입니다.";
 
       if (!insight && !isPending && !fetchError) continue;
 
@@ -85,7 +96,7 @@ export function MountainMarkersLayer({
               <span class="max-w-[6.5rem] truncate text-[10px] font-semibold leading-tight text-stone-100">${escapeHtml(m.name)}</span>
               <span class="mt-1.5 flex items-center justify-center gap-2 text-[11px] font-medium text-stone-100">
                 <span class="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-400 border-t-white" aria-hidden="true"></span>
-                불러오는 중
+                ${escapeHtml(pendingShort)}
               </span>
             </div>
             ${TAIL_HTML}
@@ -96,7 +107,7 @@ export function MountainMarkersLayer({
           iconAnchor: [60, 96],
         });
 
-        tooltipHtml = `<div class="text-xs">${escapeHtml(m.name)}<br/>운해 확률을 불러오는 중입니다.</div>`;
+        tooltipHtml = `<div class="text-xs">${escapeHtml(m.name)}<br/>${escapeHtml(pendingTooltip)}</div>`;
       } else if (fetchError) {
         const shortErr =
           fetchError.length > 48 ? `${escapeHtml(fetchError.slice(0, 48))}…` : escapeHtml(fetchError);
@@ -138,7 +149,7 @@ export function MountainMarkersLayer({
         mk.remove();
       });
     };
-  }, [map, insights, loading, mountainErrors, onOpenDetail]);
+  }, [map, insights, loadStage, loading, mountainErrors, onOpenDetail]);
 
   return null;
 }
