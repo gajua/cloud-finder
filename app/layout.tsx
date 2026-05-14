@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
 
 import { Footer } from "@/components/Footer";
@@ -35,6 +36,7 @@ export default function RootLayout({
       <body className="min-h-full font-sans">
         {children}
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
