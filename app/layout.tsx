@@ -3,6 +3,8 @@ import { Analytics } from "@vercel/analytics/next";
 import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
 
 import { Footer } from "@/components/Footer";
+import { JsonLd } from "@/components/json-ld";
+import { siteConfig } from "@/lib/site";
 
 import "./globals.css";
 
@@ -18,9 +20,49 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "운해 지도 · Cloud Finder",
-  description:
-    "한국 주요 산의 운해 확률을 보여주며, 습도·풍속·하늘상태·강수 이력·기온 범위를 함께 고려해 확률을 계산합니다.",
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: siteConfig.title,
+    template: siteConfig.titleTemplate,
+  },
+  description: siteConfig.description,
+  keywords: [...siteConfig.keywords],
+  applicationName: siteConfig.name,
+  authors: [{ name: siteConfig.name, url: siteConfig.url }],
+  creator: siteConfig.name,
+  publisher: siteConfig.name,
+  category: "weather",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: siteConfig.locale,
+    url: "/",
+    siteName: siteConfig.title,
+    title: siteConfig.title,
+    description: siteConfig.description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.title,
+    description: siteConfig.description,
+  },
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
@@ -30,10 +72,11 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="ko"
+      lang={siteConfig.language}
       className={`${notoSansKr.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
+        <JsonLd />
         {children}
         <Footer />
         <Analytics />
